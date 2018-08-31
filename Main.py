@@ -18,7 +18,7 @@ if (saveIt >= 0):
     visionDecoderModel.load_state_dict(torch.load(decoderSavePath + str(saveIt)))
     positionEstimator.load_state_dict(torch.load(posEstSavePath + str(saveIt)))
 
-nbIteration = 10000
+nbIteration = 100
 batchSize = 50
 lr = 1e-4
 

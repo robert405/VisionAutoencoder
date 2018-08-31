@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 class ResidualModuleDouble(nn.Module):
+
     def __init__(self, inputSize, outputSize):
 
         super(ResidualModuleDouble, self).__init__()
@@ -21,6 +22,7 @@ class ResidualModuleDouble(nn.Module):
         return o
 
 class ResidualModuleSingle(nn.Module):
+
     def __init__(self, inputSize):
 
         super(ResidualModuleSingle, self).__init__()
@@ -38,11 +40,12 @@ class ResidualModuleSingle(nn.Module):
         return o
 
 class VisionEncoder(nn.Module):
+
     def __init__(self):
 
         super(VisionEncoder, self).__init__()
 
-        self.conv1 = nn.Conv2d(3, 32, 7, padding=3, stride=2)
+        self.conv1 = nn.Conv2d(1, 32, 7, padding=3, stride=2)
         self.max1 = nn.MaxPool2d(2, 2)
         self.res1 = ResidualModuleDouble(32, 64)
         self.max2 = nn.MaxPool2d(2, 2)

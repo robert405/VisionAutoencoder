@@ -20,21 +20,6 @@ def evaluateModel(visionEncoderModel, visionDecoderModel):
     visionEncoderModel.eval()
     visionDecoderModel.eval()
 
-    resolution = 224
-    pixelRange = np.arange(resolution)
-
-    row = np.expand_dims(pixelRange, axis=1)
-    row = np.repeat(row, resolution, axis=1)
-    row = np.expand_dims(row, axis=0)
-    row = np.expand_dims(row, axis=3)
-    row = row / resolution
-
-    column = np.expand_dims(pixelRange, axis=0)
-    column = np.repeat(column, resolution, axis=0)
-    column = np.expand_dims(column, axis=0)
-    column = np.expand_dims(column, axis=3)
-    column = column / resolution
-
     with torch.no_grad():
         while (True):
 
@@ -43,13 +28,11 @@ def evaluateModel(visionEncoderModel, visionDecoderModel):
             originalBoard = boards[0] + 10
             originalBoard = originalBoard * (255 / 20)
 
-            inputBoards = np.expand_dims(boards, axis=3)
-            inputBoards = inputBoards / 10
-            inputBoards = np.concatenate((inputBoards, row, column), axis=3)
-            torchInputBoards = torch.FloatTensor(inputBoards).cuda()
-            torchInputBoards = torchInputBoards.permute(0, 3, 1, 2)
+            torchBoards = torch.FloatTensor(boards).cuda()
+            torchBoards = torch.unsqueeze(torchBoards, 1)
+            torchBoards = torchBoards / 10
 
-            features = visionEncoderModel(torchInputBoards)
+            features = visionEncoderModel(torchBoards)
             pred = visionDecoderModel(features)
             pred = pred.squeeze()
             pred = F.sigmoid(pred)
