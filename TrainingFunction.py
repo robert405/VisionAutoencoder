@@ -4,16 +4,22 @@ import numpy as np
 import time
 from Engine import Engine
 
-def train(visionEncoderModel, visionDecoderModel, positionEstimator, nbIteration, batchSize, lr):
+def lerningSchedule(t1, t):
+
+    return 1 / (t1 + (t*10))
+
+def train(visionEncoderModel, visionDecoderModel, positionEstimator, nbIteration, batchSize, t1):
 
     print("Starting trainning!")
+    lr = lerningSchedule(t1, 0)
+
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionDecoderModel.parameters()), lr=lr)
     optimizer2 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(positionEstimator.parameters()), lr=lr)
 
     lossList = []
     lossList2 = []
-    moduloPrint = 25
+    moduloPrint = 100
     visionEncoderModel.train()
     visionDecoderModel.train()
     positionEstimator.train()
@@ -88,6 +94,10 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, nbIteration
             meanLoss = 0
             meanLoss2 = 0
 
+            lr = lerningSchedule(t1, k)
+            optimizer = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionDecoderModel.parameters()), lr=lr)
+            optimizer2 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(positionEstimator.parameters()), lr=lr)
+
         if (k % 200 == 0):
             end = time.time()
             timeTillNow = end - start
@@ -96,11 +106,6 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, nbIteration
             print("Time to run since started (sec) : " + str(timeTillNow))
             print("Predicted remaining time (sec) : " + str(predictedRemainingTime))
             print("--------------------------------------------------------------------")
-
-        if (k % 1000 == 0):
-            lr = lr * 0.4
-            optimizer = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionDecoderModel.parameters()),lr=lr)
-            optimizer2 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(positionEstimator.parameters()),lr=lr)
 
     end = time.time()
     print("Time to run in second : " + str(end - start))
