@@ -3,6 +3,7 @@ import torch.nn as nn
 import numpy as np
 import time
 from Engine import Engine
+from ImgAug import imgAug
 
 def lerningSchedule(t1, t):
 
@@ -48,8 +49,9 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, nbIteration
 
         engine = Engine(batchSize,(15,15),(15,15),224)
         boards = engine.drawAllBoard()
-        inputBoards = np.expand_dims(boards, axis=3)
-        inputBoards = inputBoards / 10
+        inputBoards = boards / 10
+        inputBoards = imgAug(inputBoards)
+        inputBoards = np.expand_dims(inputBoards, axis=3)
         inputBoards = np.concatenate((inputBoards, row, column), axis=3)
         torchInputBoards = torch.FloatTensor(inputBoards).cuda()
         torchInputBoards = torchInputBoards.permute(0, 3, 1, 2)
