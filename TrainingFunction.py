@@ -1,15 +1,30 @@
 import torch
 import torch.nn as nn
 import numpy as np
+import cv2
 import time
 from Engine import Engine
 from ImgAug import imgAug
+
+def getEdge(boards):
+
+    edges = np.zeros_like(boards)
+
+    for i in range(boards.shape[0]):
+
+        board = boards[i] ** 2
+        board[board > 0] = 255
+        boardEx = np.expand_dims(board, axis=2)
+        boardEx = np.repeat(boardEx, 3, axis=2).astype('uint8')
+        edges[i] = cv2.Canny(boardEx, 127, 127)
+
+    return edges
 
 def lerningSchedule(t1, t):
 
     return 1 / (t1 + (t*10))
 
-def train(visionEncoderModel, visionDecoderModel, positionEstimator, nbIteration, batchSize, t1):
+def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeDecoderModel, nbIteration, batchSize, t1):
 
     print("Starting trainning!")
     lr = lerningSchedule(t1, 0)
@@ -17,15 +32,19 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, nbIteration
     criterion = nn.MSELoss()
     optimizer = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionDecoderModel.parameters()), lr=lr)
     optimizer2 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(positionEstimator.parameters()), lr=lr)
+    optimizer3 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionEdgeDecoderModel.parameters()), lr=lr)
 
     lossList = []
     lossList2 = []
+    lossList3 = []
     moduloPrint = 100
     visionEncoderModel.train()
     visionDecoderModel.train()
     positionEstimator.train()
+    visionEdgeDecoderModel.train()
     meanLoss = 0
     meanLoss2 = 0
+    meanLoss3 = 0
     start = time.time()
 
     resolution = 224
@@ -55,6 +74,10 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, nbIteration
         inputBoards = np.concatenate((inputBoards, row, column), axis=3)
         torchInputBoards = torch.FloatTensor(inputBoards).cuda()
         torchInputBoards = torchInputBoards.permute(0, 3, 1, 2)
+
+        edges = getEdge(boards)
+        torchEdgeBoards = torch.FloatTensor(edges).cuda()
+        torchEdgeBoards = torch.unsqueeze(torchEdgeBoards, 1)
 
         robotPos = engine.getAllRobotPos()
         goalPos = engine.getAllGoalPos()
@@ -87,18 +110,35 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, nbIteration
 
         meanLoss2 += loss2.data.cpu().numpy()
 
+        features3 = visionEncoderModel(torchInputBoards)
+
+        edgePred = visionEdgeDecoderModel(features3)
+        loss3 = criterion(edgePred, torchEdgeBoards)
+        optimizer3.zero_grad()
+        loss3.backward()
+        optimizer3.step()
+
+        meanLoss3 += loss3.data.cpu().numpy()
+
         if ((k+1) % moduloPrint == 0):
             meanLoss = meanLoss / moduloPrint
             lossList += [meanLoss]
             meanLoss2 = meanLoss2 / moduloPrint
             lossList2 += [meanLoss2]
-            print("Iteration : " + str(k+1) + " / " + str(nbIteration) + ", Current mean loss : " + str(meanLoss) + ", Current mean loss 2 : " + str(meanLoss2))
+            meanLoss3 = meanLoss3 / moduloPrint
+            lossList3 += [meanLoss3]
+            print("Iteration : " + str(k+1) + " / " + str(nbIteration) + ", Current mean loss : " + str(meanLoss)
+                  + ", Current mean loss 2 : " + str(meanLoss2)
+                  + ", Current mean loss 3 : " + str(meanLoss3)
+                  )
             meanLoss = 0
             meanLoss2 = 0
+            meanLoss3 = 0
 
             lr = lerningSchedule(t1, k)
             optimizer = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionDecoderModel.parameters()), lr=lr)
             optimizer2 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(positionEstimator.parameters()), lr=lr)
+            optimizer3 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionEdgeDecoderModel.parameters()), lr=lr)
 
         if (k % 200 == 0):
             end = time.time()
@@ -112,4 +152,4 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, nbIteration
     end = time.time()
     print("Time to run in second : " + str(end - start))
 
-    return lossList, lossList2
+    return lossList, lossList2, lossList3

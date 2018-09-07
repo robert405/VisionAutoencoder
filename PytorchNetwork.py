@@ -87,6 +87,29 @@ class VisionDecoder(nn.Module):
 
         return o
 
+class VisionEdgeDecoder(nn.Module):
+
+    def __init__(self):
+
+        super(VisionEdgeDecoder, self).__init__()
+
+        self.upConv1 = nn.ConvTranspose2d(256, 256, 3, stride=2, padding=1)
+        self.upConv2 = nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1)
+        self.upConv3 = nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1)
+        self.upConv4 = nn.ConvTranspose2d(64, 32, 3, stride=2, padding=1)
+        self.upConv5 = nn.ConvTranspose2d(32, 1, 3, stride=2, padding=1)
+
+    def forward(self, featureVector):
+
+        inputSize = torch.LongTensor([featureVector.size(2), featureVector.size(3)])
+        h = F.elu(self.upConv1(featureVector, output_size=inputSize*2))
+        h = F.elu(self.upConv2(h, output_size=inputSize*4))
+        h = F.elu(self.upConv3(h, output_size=inputSize*8))
+        h = F.elu(self.upConv4(h, output_size=inputSize*16))
+        o = F.elu(self.upConv5(h, output_size=inputSize*32))
+
+        return o
+
 class PositionEstimator(nn.Module):
 
     def __init__(self):
