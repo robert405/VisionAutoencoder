@@ -18,6 +18,9 @@ def getEdge(boards):
         boardEx = np.repeat(boardEx, 3, axis=2).astype('uint8')
         edges[i] = cv2.Canny(boardEx, 127, 127)
 
+    edges = edges - 127.5
+    edges = edges / 128
+
     return edges
 
 def lerningSchedule(t1, t):
@@ -93,7 +96,7 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
             features = visionEncoderModel(torchInputBoards)
             pred = visionDecoderModel(features)
 
-            loss = criterion(pred, torchBoards)
+            loss = calculateLoss(pred, torchBoards)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -109,6 +112,9 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
             allPosition = np.concatenate((robotPos, goalPos), axis=1)
             allPositionAndDist = np.concatenate((allPosition, dist), axis=1)
             torchPositionAndDist = torch.FloatTensor(allPositionAndDist).cuda()
+            halfResolution = resolution / 2
+            torchPositionAndDist = torchPositionAndDist - halfResolution
+            torchPositionAndDist = torchPositionAndDist / halfResolution
 
             features2 = visionEncoderModel(torchInputBoards)
 

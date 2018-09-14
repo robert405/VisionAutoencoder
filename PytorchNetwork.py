@@ -83,7 +83,7 @@ class VisionDecoder(nn.Module):
         h = F.elu(self.upConv2(h, output_size=inputSize*4))
         h = F.elu(self.upConv3(h, output_size=inputSize*8))
         h = F.elu(self.upConv4(h, output_size=inputSize*16))
-        o = F.elu(self.upConv5(h, output_size=inputSize*32))
+        o = self.upConv5(h, output_size=inputSize*32)
 
         return o
 
@@ -106,7 +106,7 @@ class VisionEdgeDecoder(nn.Module):
         h = F.elu(self.upConv2(h, output_size=inputSize*4))
         h = F.elu(self.upConv3(h, output_size=inputSize*8))
         h = F.elu(self.upConv4(h, output_size=inputSize*16))
-        o = F.elu(self.upConv5(h, output_size=inputSize*32))
+        o = self.upConv5(h, output_size=inputSize*32)
 
         return o
 
