@@ -96,7 +96,7 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
             features = visionEncoderModel(torchInputBoards)
             pred = visionDecoderModel(features)
 
-            loss = calculateLoss(pred, torchBoards)
+            loss = criterion(pred, torchBoards)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
