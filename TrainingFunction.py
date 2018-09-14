@@ -24,16 +24,16 @@ def lerningSchedule(t1, t):
 
     return 1 / (t1 + (t*10))
 
-def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeDecoderModel, nbIteration, batchSize, t1):
+def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeDecoderModel, nbIteration, batchSize, t1, multitask):
 
     print("Starting trainning!")
     lr = lerningSchedule(t1, 0)
 
     criterion = nn.MSELoss()
-    optimizer = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionDecoderModel.parameters()), lr=lr)
-    optimizer2 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(positionEstimator.parameters()), lr=lr)
-    optimizer3 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionEdgeDecoderModel.parameters()), lr=lr)
 
+    optimizer = None
+    optimizer2 = None
+    optimizer3 = None
     lossList = []
     lossList2 = []
     lossList3 = []
@@ -45,6 +45,16 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
     meanLoss = 0
     meanLoss2 = 0
     meanLoss3 = 0
+
+    if (multitask['autoEncoder']):
+        optimizer = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionDecoderModel.parameters()), lr=lr)
+
+    if (multitask['posEstimator']):
+        optimizer2 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(positionEstimator.parameters()), lr=lr)
+
+    if (multitask['edgeDecoder']):
+        optimizer3 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionEdgeDecoderModel.parameters()),lr=lr)
+
     start = time.time()
 
     resolution = 224
@@ -75,70 +85,84 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
         torchInputBoards = torch.FloatTensor(inputBoards).cuda()
         torchInputBoards = torchInputBoards.permute(0, 3, 1, 2)
 
-        edges = getEdge(boards)
-        torchEdgeBoards = torch.FloatTensor(edges).cuda()
-        torchEdgeBoards = torch.unsqueeze(torchEdgeBoards, 1)
+        if (multitask['autoEncoder']):
 
-        robotPos = engine.getAllRobotPos()
-        goalPos = engine.getAllGoalPos()
-        dist = engine.getDist(robotPos)
-        dist = np.expand_dims(dist, axis=1)
-        allPosition = np.concatenate((robotPos, goalPos), axis=1)
-        allPositionAndDist = np.concatenate((allPosition, dist), axis=1)
-        torchPositionAndDist = torch.FloatTensor(allPositionAndDist).cuda()
+            torchBoards = torch.FloatTensor(boards).cuda()
+            torchBoards = torch.unsqueeze(torchBoards, 1)
 
-        torchBoards = torch.FloatTensor(boards).cuda()
-        torchBoards = torch.unsqueeze(torchBoards, 1)
+            features = visionEncoderModel(torchInputBoards)
+            pred = visionDecoderModel(features)
 
-        features = visionEncoderModel(torchInputBoards)
-        pred = visionDecoderModel(features)
+            loss = criterion(pred, torchBoards)
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
 
-        loss = criterion(pred, torchBoards)
-        optimizer.zero_grad()
-        loss.backward()
-        optimizer.step()
+            meanLoss += loss.data.cpu().numpy()
 
-        meanLoss += loss.data.cpu().numpy()
+        if (multitask['posEstimator']):
 
-        features2 = visionEncoderModel(torchInputBoards)
+            robotPos = engine.getAllRobotPos()
+            goalPos = engine.getAllGoalPos()
+            dist = engine.getDist(robotPos)
+            dist = np.expand_dims(dist, axis=1)
+            allPosition = np.concatenate((robotPos, goalPos), axis=1)
+            allPositionAndDist = np.concatenate((allPosition, dist), axis=1)
+            torchPositionAndDist = torch.FloatTensor(allPositionAndDist).cuda()
 
-        posPred = positionEstimator(features2)
-        loss2 = criterion(posPred, torchPositionAndDist)
-        optimizer2.zero_grad()
-        loss2.backward()
-        optimizer2.step()
+            features2 = visionEncoderModel(torchInputBoards)
 
-        meanLoss2 += loss2.data.cpu().numpy()
+            posPred = positionEstimator(features2)
+            loss2 = criterion(posPred, torchPositionAndDist)
+            optimizer2.zero_grad()
+            loss2.backward()
+            optimizer2.step()
 
-        features3 = visionEncoderModel(torchInputBoards)
+            meanLoss2 += loss2.data.cpu().numpy()
 
-        edgePred = visionEdgeDecoderModel(features3)
-        loss3 = criterion(edgePred, torchEdgeBoards)
-        optimizer3.zero_grad()
-        loss3.backward()
-        optimizer3.step()
+        if (multitask['edgeDecoder']):
 
-        meanLoss3 += loss3.data.cpu().numpy()
+            edges = getEdge(boards)
+            torchEdgeBoards = torch.FloatTensor(edges).cuda()
+            torchEdgeBoards = torch.unsqueeze(torchEdgeBoards, 1)
+
+            features3 = visionEncoderModel(torchInputBoards)
+
+            edgePred = visionEdgeDecoderModel(features3)
+            loss3 = criterion(edgePred, torchEdgeBoards)
+            optimizer3.zero_grad()
+            loss3.backward()
+            optimizer3.step()
+
+            meanLoss3 += loss3.data.cpu().numpy()
 
         if ((k+1) % moduloPrint == 0):
-            meanLoss = meanLoss / moduloPrint
-            lossList += [meanLoss]
-            meanLoss2 = meanLoss2 / moduloPrint
-            lossList2 += [meanLoss2]
-            meanLoss3 = meanLoss3 / moduloPrint
-            lossList3 += [meanLoss3]
-            print("Iteration : " + str(k+1) + " / " + str(nbIteration) + ", Current mean loss : " + str(meanLoss)
-                  + ", Current mean loss 2 : " + str(meanLoss2)
-                  + ", Current mean loss 3 : " + str(meanLoss3)
-                  )
-            meanLoss = 0
-            meanLoss2 = 0
-            meanLoss3 = 0
 
             lr = lerningSchedule(t1, k)
-            optimizer = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionDecoderModel.parameters()), lr=lr)
-            optimizer2 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(positionEstimator.parameters()), lr=lr)
-            optimizer3 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionEdgeDecoderModel.parameters()), lr=lr)
+            msg = "Iteration : " + str(k + 1) + " / " + str(nbIteration)
+
+            if (multitask['autoEncoder']):
+                meanLoss = meanLoss / moduloPrint
+                lossList += [meanLoss]
+                msg += ", Current mean loss : " + str(meanLoss)
+                meanLoss = 0
+                optimizer = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionDecoderModel.parameters()), lr=lr)
+
+            if (multitask['posEstimator']):
+                meanLoss2 = meanLoss2 / moduloPrint
+                lossList2 += [meanLoss2]
+                msg += ", Current mean loss 2 : " + str(meanLoss2)
+                meanLoss2 = 0
+                optimizer2 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(positionEstimator.parameters()), lr=lr)
+
+            if (multitask['edgeDecoder']):
+                meanLoss3 = meanLoss3 / moduloPrint
+                lossList3 += [meanLoss3]
+                msg += ", Current mean loss 3 : " + str(meanLoss3)
+                meanLoss3 = 0
+                optimizer3 = torch.optim.Adam(list(visionEncoderModel.parameters()) + list(visionEdgeDecoderModel.parameters()), lr=lr)
+
+            print(msg)
 
         if (k % 200 == 0):
             end = time.time()

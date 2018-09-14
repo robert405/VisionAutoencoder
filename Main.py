@@ -21,13 +21,14 @@ if (saveIt >= 0):
     positionEstimator.load_state_dict(torch.load(posEstSavePath + str(saveIt)))
     visionEdgeDecoderModel.load_state_dict(torch.load(edgeDecoderSavePath + str(saveIt)))
 
-nbIteration = 100
+nbIteration = 2000
 batchSize = 50
 #lr = 1e-4
 t1 = 10000
 
+multitask = {'autoEncoder':True, 'posEstimator':True, 'edgeDecoder':True}
 
-lossList, lossList2, lossList3 = train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeDecoderModel, nbIteration, batchSize, t1)
+lossList, lossList2, lossList3 = train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeDecoderModel, nbIteration, batchSize, t1, multitask)
 
 torch.save(visionEncoderModel.state_dict(), encoderSavePath + str(saveIt + 1))
 torch.save(visionDecoderModel.state_dict(), decoderSavePath + str(saveIt + 1))
