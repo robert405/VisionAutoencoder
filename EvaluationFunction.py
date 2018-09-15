@@ -1,24 +1,13 @@
 import torch
-import torch.nn.functional as F
 import numpy as np
 from Engine import Engine
-import matplotlib.pyplot as plt
+from Utils import showImgs, getEdge
 
-def showImgs(imgs, nbEx, nbCl):
-    counter = 0
-    for i in range(nbCl):
-        for j in range(nbEx):
-            plt.subplot(nbEx, nbCl, counter+1)
-            plt.imshow(imgs[counter].astype('uint8'))
-            plt.axis('off')
-            counter += 1
-
-    plt.show()
-
-def evaluateModel(visionEncoderModel, visionDecoderModel):
+def evaluateModel(visionEncoderModel, visionDecoderModel, visionEdgeDecoderModel):
 
     visionEncoderModel.eval()
     visionDecoderModel.eval()
+    visionEdgeDecoderModel.eval()
 
     resolution = 224
     pixelRange = np.arange(resolution)
@@ -43,6 +32,10 @@ def evaluateModel(visionEncoderModel, visionDecoderModel):
             originalBoard = boards[0] + 10
             originalBoard = originalBoard * (255 / 20)
 
+            edges = getEdge(boards)
+            edge = edges[0] * 128
+            edge = edge + 127.5
+
             inputBoards = np.expand_dims(boards, axis=3)
             inputBoards = inputBoards / 10
             inputBoards = np.concatenate((inputBoards, row, column), axis=3)
@@ -50,15 +43,20 @@ def evaluateModel(visionEncoderModel, visionDecoderModel):
             torchInputBoards = torchInputBoards.permute(0, 3, 1, 2)
 
             features = visionEncoderModel(torchInputBoards)
+
             pred = visionDecoderModel(features)
             pred = pred.squeeze()
-            pred = F.sigmoid(pred)
             pred = pred + 10.0
             pred = pred * (255 / 20)
 
-            compareList = [originalBoard, pred.data.cpu().numpy()]
+            edgePred = visionEdgeDecoderModel(features)
+            edgePred = edgePred.squeeze()
+            edgePred = edgePred + 5.0
+            edgePred = edgePred * (255 / 10)
 
-            showImgs(compareList, 1, 2)
+            compareList = [originalBoard, pred.data.cpu().numpy(), edge, edgePred.data.cpu().numpy()]
+
+            showImgs(compareList, 2, 2)
 
             print("exit or continu?")
             answer = input()

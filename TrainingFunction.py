@@ -1,36 +1,15 @@
 import torch
 import torch.nn as nn
-import numpy as np
-import cv2
 import time
+import numpy as np
 from Engine import Engine
 from ImgAug import imgAug
-
-def getEdge(boards):
-
-    edges = np.zeros_like(boards)
-
-    for i in range(boards.shape[0]):
-
-        board = boards[i] ** 2
-        board[board > 0] = 255
-        boardEx = np.expand_dims(board, axis=2)
-        boardEx = np.repeat(boardEx, 3, axis=2).astype('uint8')
-        edges[i] = cv2.Canny(boardEx, 127, 127)
-
-    edges = edges - 127.5
-    edges = edges / 128
-
-    return edges
-
-def lerningSchedule(t1, t):
-
-    return 1 / (t1 + (t*10))
+from Utils import learningSchedule, getEdge
 
 def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeDecoderModel, nbIteration, batchSize, t1, multitask):
 
     print("Starting trainning!")
-    lr = lerningSchedule(t1, 0)
+    lr = learningSchedule(t1, 0)
 
     criterion = nn.MSELoss()
 
@@ -115,6 +94,7 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
             halfResolution = resolution / 2
             torchPositionAndDist = torchPositionAndDist - halfResolution
             torchPositionAndDist = torchPositionAndDist / halfResolution
+            torchPositionAndDist = torchPositionAndDist * 10
 
             features2 = visionEncoderModel(torchInputBoards)
 
@@ -131,6 +111,7 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
             edges = getEdge(boards)
             torchEdgeBoards = torch.FloatTensor(edges).cuda()
             torchEdgeBoards = torch.unsqueeze(torchEdgeBoards, 1)
+            torchEdgeBoards = torchEdgeBoards * 5
 
             features3 = visionEncoderModel(torchInputBoards)
 
@@ -144,7 +125,7 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
 
         if ((k+1) % moduloPrint == 0):
 
-            lr = lerningSchedule(t1, k)
+            lr = learningSchedule(t1, k)
             msg = "Iteration : " + str(k + 1) + " / " + str(nbIteration)
 
             if (multitask['autoEncoder']):

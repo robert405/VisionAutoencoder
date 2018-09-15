@@ -21,7 +21,7 @@ if (saveIt >= 0):
     positionEstimator.load_state_dict(torch.load(posEstSavePath + str(saveIt)))
     visionEdgeDecoderModel.load_state_dict(torch.load(edgeDecoderSavePath + str(saveIt)))
 
-nbIteration = 200
+nbIteration = 100
 batchSize = 50
 #lr = 1e-4
 t1 = 10000
@@ -44,4 +44,4 @@ plt.show()
 plt.plot(lossList3)
 plt.show()
 
-evaluateModel(visionEncoderModel, visionDecoderModel)
+evaluateModel(visionEncoderModel, visionDecoderModel, visionEdgeDecoderModel)
