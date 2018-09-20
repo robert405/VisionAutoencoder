@@ -2,16 +2,15 @@ import numpy as np
 
 class Obstacle:
 
-    def __init__(self, obstacleShape, obstaclePos, obstacleColor, boardSize):
+    def __init__(self, obstacleShape, obstaclePos, boardSize):
 
         self.obstacleShape = obstacleShape
-        self.obstacleColor = obstacleColor
         self.obstaclePos = obstaclePos
         self.boardSize = boardSize
 
     def drawOnBoard(self, board):
 
-        board[self.obstaclePos[0]:self.obstaclePos[0]+self.obstacleShape[0], self.obstaclePos[1]:self.obstaclePos[1]+self.obstacleShape[1]] = self.obstacleColor
+        board[self.obstaclePos[0]:self.obstaclePos[0]+self.obstacleShape[0], self.obstaclePos[1]:self.obstaclePos[1]+self.obstacleShape[1]] = 1
 
     def putSubPenaltyOnBoard(self, board):
 
@@ -40,10 +39,6 @@ class Simulation:
 
     def __init__(self, robotPos, robotShape, goalPos, goalShape, boardSize):
 
-        self.robotColor = 5
-        self.goalColor = 10
-        self.obstacleColor = -10
-
         self.boardSize = boardSize
         self.robotPos = robotPos
         self.robotShape = robotShape
@@ -71,7 +66,7 @@ class Simulation:
             while (self.collideWithRobotOrGoal(yPos,height,1)):
                 yPos = np.random.randint(0,high=self.boardSize-height)
 
-            self.obstacleList += [Obstacle((height,width), (xPos,yPos), self.obstacleColor, self.boardSize)]
+            self.obstacleList += [Obstacle((height,width), (xPos,yPos), self.boardSize)]
 
     def collideWithRobotOrGoal(self, xPos, witdth, xy):
 
@@ -93,36 +88,16 @@ class Simulation:
 
     def drawBoard(self):
 
-        board = np.zeros((self.boardSize,self.boardSize))
-        self.drawObstacles(board)
-        board[self.robotPos[0]:self.robotPos[0]+self.robotShape[0], self.robotPos[1]:self.robotPos[1]+self.robotShape[1]] = self.robotColor
-        board[self.goalPos[0]:self.goalPos[0]+self.goalShape[0],self.goalPos[1]:self.goalPos[1]+self.goalShape[1]] = self.goalColor
+        board1 = np.zeros((self.boardSize,self.boardSize))
+        board2 = np.zeros((self.boardSize, self.boardSize))
+        board3 = np.zeros((self.boardSize, self.boardSize))
+        self.drawObstacles(board1)
+        board2[self.robotPos[0]:self.robotPos[0]+self.robotShape[0], self.robotPos[1]:self.robotPos[1]+self.robotShape[1]] = 1
+        board3[self.goalPos[0]:self.goalPos[0]+self.goalShape[0],self.goalPos[1]:self.goalPos[1]+self.goalShape[1]] = 1
 
-        return board
+        return np.dstack((board1,board2,board3))
 
-    def getBoardForNet(self):
 
-        board = self.drawBoard()
-        board = np.expand_dims(board,axis=2)
-
-        return board
-
-    def addObstaclesPenalty(self,board):
-
-        #for obstacle in self.obstacleList:
-
-         #   obstacle.putSubPenaltyOnBoard(board)
-
-        for obstacle in self.obstacleList:
-
-            obstacle.putPenaltyOnBoard(board)
-
-    def createPenaltyBoard(self):
-
-        board = np.zeros((self.boardSize,self.boardSize))
-        self.addObstaclesPenalty(board)
-
-        return board
 
 
 

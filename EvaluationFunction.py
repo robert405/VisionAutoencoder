@@ -29,16 +29,13 @@ def evaluateModel(visionEncoderModel, visionDecoderModel, visionEdgeDecoderModel
 
             engine = Engine(1, (15, 15), (15, 15), 224)
             boards = engine.drawAllBoard()
-            originalBoard = boards[0] + 10
-            originalBoard = originalBoard * (255 / 20)
+            originalBoard = np.squeeze(boards) * 255
 
             edges = getEdge(boards)
             edge = edges[0] * 128
             edge = edge + 127.5
 
-            inputBoards = np.expand_dims(boards, axis=3)
-            inputBoards = inputBoards / 10
-            inputBoards = np.concatenate((inputBoards, row, column), axis=3)
+            inputBoards = np.concatenate((boards, row, column), axis=3)
             torchInputBoards = torch.FloatTensor(inputBoards).cuda()
             torchInputBoards = torchInputBoards.permute(0, 3, 1, 2)
 
@@ -46,8 +43,8 @@ def evaluateModel(visionEncoderModel, visionDecoderModel, visionEdgeDecoderModel
 
             pred = visionDecoderModel(features)
             pred = pred.squeeze()
-            pred = pred + 10.0
-            pred = pred * (255 / 20)
+            pred = pred * 255
+            pred = pred.permute(1, 2, 0)
 
             edgePred = visionEdgeDecoderModel(features)
             edgePred = edgePred.squeeze()

@@ -15,14 +15,12 @@ def showImgs(imgs, nbEx, nbCl):
 
 def getEdge(boards):
 
-    edges = np.zeros_like(boards)
+    edges = np.zeros((boards.shape[0], boards.shape[1], boards.shape[2]))
 
     for i in range(boards.shape[0]):
 
-        board = boards[i] ** 2
-        board[board > 0] = 255
-        boardEx = np.expand_dims(board, axis=2)
-        boardEx = np.repeat(boardEx, 3, axis=2).astype('uint8')
+        board = boards[i] * 255
+        boardEx = board.astype('uint8')
         edges[i] = cv2.Canny(boardEx, 127, 127)
 
     edges = edges - 127.5

@@ -60,17 +60,15 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
 
         engine = Engine(batchSize,(15,15),(15,15),224)
         boards = engine.drawAllBoard()
-        inputBoards = boards / 10
-        inputBoards = imgAug(inputBoards)
-        inputBoards = np.expand_dims(inputBoards, axis=3)
-        inputBoards = np.concatenate((inputBoards, row, column), axis=3)
+        #inputBoards = imgAug(boards)
+        inputBoards = np.concatenate((boards, row, column), axis=3)
         torchInputBoards = torch.FloatTensor(inputBoards).cuda()
         torchInputBoards = torchInputBoards.permute(0, 3, 1, 2)
 
         if (multitask['autoEncoder']):
 
             torchBoards = torch.FloatTensor(boards).cuda()
-            torchBoards = torch.unsqueeze(torchBoards, 1)
+            torchBoards = torchBoards.permute(0, 3, 1, 2)
 
             features = visionEncoderModel(torchInputBoards)
             pred = visionDecoderModel(features)
@@ -107,6 +105,7 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
             meanLoss2 += loss2.data.cpu().numpy()
 
         if (multitask['edgeDecoder']):
+
 
             edges = getEdge(boards)
             torchEdgeBoards = torch.FloatTensor(edges).cuda()

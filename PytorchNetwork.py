@@ -42,7 +42,7 @@ class VisionEncoder(nn.Module):
 
         super(VisionEncoder, self).__init__()
 
-        self.conv1 = nn.Conv2d(3, 32, 7, padding=3, stride=2)
+        self.conv1 = nn.Conv2d(5, 32, 7, padding=3, stride=2)
         self.max1 = nn.MaxPool2d(2, 2)
         self.res1 = ResidualModuleDouble(32, 64)
         self.max2 = nn.MaxPool2d(2, 2)
@@ -74,7 +74,7 @@ class VisionDecoder(nn.Module):
         self.upConv2 = nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1)
         self.upConv3 = nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1)
         self.upConv4 = nn.ConvTranspose2d(64, 32, 3, stride=2, padding=1)
-        self.upConv5 = nn.ConvTranspose2d(32, 1, 3, stride=2, padding=1)
+        self.upConv5 = nn.ConvTranspose2d(32, 3, 3, stride=2, padding=1)
 
     def forward(self, featureVector):
 

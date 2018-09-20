@@ -79,7 +79,7 @@ class Engine:
 
     def drawAllBoard(self):
 
-        boardList = np.zeros((self.nbSimulation,self.boardSize,self.boardSize))
+        boardList = np.zeros((self.nbSimulation,self.boardSize,self.boardSize,3))
 
         for i in range(self.nbSimulation):
             boardList[i] = self.simulationList[i].drawBoard()
