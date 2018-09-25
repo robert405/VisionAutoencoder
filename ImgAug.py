@@ -22,6 +22,7 @@ def coarseDropOut(boards, nb, size):
     for i in range(nb):
         canvas[rand1[i]:rand1[i]+size,rand2[i]:rand2[i]+size] = 0
 
+    canvas = np.dstack((canvas, canvas, canvas))
     mask = np.expand_dims(canvas, axis=0)
     mask = np.repeat(mask, shape[0], axis=0)
 

@@ -74,7 +74,7 @@ class VisionDecoder(nn.Module):
         self.upConv2 = nn.ConvTranspose2d(256, 128, 3, stride=2, padding=1)
         self.upConv3 = nn.ConvTranspose2d(128, 64, 3, stride=2, padding=1)
         self.upConv4 = nn.ConvTranspose2d(64, 32, 3, stride=2, padding=1)
-        self.upConv5 = nn.ConvTranspose2d(32, 3, 3, stride=2, padding=1)
+        self.upConv5 = nn.ConvTranspose2d(32, 4, 3, stride=2, padding=1)
 
     def forward(self, featureVector):
 

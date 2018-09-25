@@ -11,7 +11,8 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
     print("Starting trainning!")
     lr = learningSchedule(t1, 0)
 
-    criterion = nn.MSELoss()
+    mse = nn.MSELoss()
+    crossEntropy = nn.CrossEntropyLoss()
 
     optimizer = None
     optimizer2 = None
@@ -60,20 +61,26 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
 
         engine = Engine(batchSize,(15,15),(15,15),224)
         boards = engine.drawAllBoard()
-        #inputBoards = imgAug(boards)
-        inputBoards = np.concatenate((boards, row, column), axis=3)
+        inputBoards = imgAug(boards)
+        inputBoards = np.concatenate((inputBoards, row, column), axis=3)
         torchInputBoards = torch.FloatTensor(inputBoards).cuda()
         torchInputBoards = torchInputBoards.permute(0, 3, 1, 2)
 
         if (multitask['autoEncoder']):
 
-            torchBoards = torch.FloatTensor(boards).cuda()
+            layoutSum = np.sum(boards,axis=3)
+            boardTarget = np.ones_like(layoutSum)
+            boardTarget = boardTarget - layoutSum
+            boardTarget = np.expand_dims(boardTarget, axis=3)
+            boardTarget = np.concatenate((boards, boardTarget), axis=3)
+            torchBoards = torch.FloatTensor(boardTarget).cuda()
             torchBoards = torchBoards.permute(0, 3, 1, 2)
+            torchBoards = torch.argmax(torchBoards,dim=1)
 
             features = visionEncoderModel(torchInputBoards)
             pred = visionDecoderModel(features)
 
-            loss = criterion(pred, torchBoards)
+            loss = crossEntropy(pred, torchBoards)
             optimizer.zero_grad()
             loss.backward()
             optimizer.step()
@@ -97,7 +104,7 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
             features2 = visionEncoderModel(torchInputBoards)
 
             posPred = positionEstimator(features2)
-            loss2 = criterion(posPred, torchPositionAndDist)
+            loss2 = mse(posPred, torchPositionAndDist)
             optimizer2.zero_grad()
             loss2.backward()
             optimizer2.step()
@@ -115,7 +122,7 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
             features3 = visionEncoderModel(torchInputBoards)
 
             edgePred = visionEdgeDecoderModel(features3)
-            loss3 = criterion(edgePred, torchEdgeBoards)
+            loss3 = mse(edgePred, torchEdgeBoards)
             optimizer3.zero_grad()
             loss3.backward()
             optimizer3.step()

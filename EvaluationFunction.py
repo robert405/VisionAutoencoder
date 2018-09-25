@@ -1,4 +1,5 @@
 import torch
+import torch.nn.functional as F
 import numpy as np
 from Engine import Engine
 from Utils import showImgs, getEdge
@@ -42,16 +43,22 @@ def evaluateModel(visionEncoderModel, visionDecoderModel, visionEdgeDecoderModel
             features = visionEncoderModel(torchInputBoards)
 
             pred = visionDecoderModel(features)
+            pred = F.softmax(pred, dim=1)
+            pred = pred.permute(0, 2, 3, 1)
             pred = pred.squeeze()
-            pred = pred * 255
-            pred = pred.permute(1, 2, 0)
+            predBoard = pred.data.cpu().numpy()
+            index = np.argmax(predBoard, axis=2)
+            range = np.arange(224)
+            canvas = np.zeros_like(predBoard)
+            canvas[range,range,index] = 255
+            result = canvas[:, :, 0:3]
 
             edgePred = visionEdgeDecoderModel(features)
             edgePred = edgePred.squeeze()
             edgePred = edgePred + 5.0
             edgePred = edgePred * (255 / 10)
 
-            compareList = [originalBoard, pred.data.cpu().numpy(), edge, edgePred.data.cpu().numpy()]
+            compareList = [originalBoard, result, edge, edgePred.data.cpu().numpy()]
 
             showImgs(compareList, 2, 2)
 
