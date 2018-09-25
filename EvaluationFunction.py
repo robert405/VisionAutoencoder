@@ -47,11 +47,8 @@ def evaluateModel(visionEncoderModel, visionDecoderModel, visionEdgeDecoderModel
             pred = pred.permute(0, 2, 3, 1)
             pred = pred.squeeze()
             predBoard = pred.data.cpu().numpy()
-            index = np.argmax(predBoard, axis=2)
-            range = np.arange(224)
-            canvas = np.zeros_like(predBoard)
-            canvas[range,range,index] = 255
-            result = canvas[:, :, 0:3]
+            predBoard = predBoard * 255
+            result = predBoard[:, :, 0:3]
 
             edgePred = visionEdgeDecoderModel(features)
             edgePred = edgePred.squeeze()

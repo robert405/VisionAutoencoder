@@ -69,11 +69,11 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
         if (multitask['autoEncoder']):
 
             layoutSum = np.sum(boards,axis=3)
-            boardTarget = np.ones_like(layoutSum)
-            boardTarget = boardTarget - layoutSum
-            boardTarget = np.expand_dims(boardTarget, axis=3)
-            boardTarget = np.concatenate((boards, boardTarget), axis=3)
-            torchBoards = torch.FloatTensor(boardTarget).cuda()
+            background = np.ones_like(layoutSum)
+            background = background - layoutSum
+            background = np.expand_dims(background, axis=3)
+            targetBoard = np.concatenate((boards, background), axis=3)
+            torchBoards = torch.LongTensor(targetBoard).cuda()
             torchBoards = torchBoards.permute(0, 3, 1, 2)
             torchBoards = torch.argmax(torchBoards,dim=1)
 
@@ -99,7 +99,7 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
             halfResolution = resolution / 2
             torchPositionAndDist = torchPositionAndDist - halfResolution
             torchPositionAndDist = torchPositionAndDist / halfResolution
-            torchPositionAndDist = torchPositionAndDist * 10
+            #torchPositionAndDist = torchPositionAndDist * 10
 
             features2 = visionEncoderModel(torchInputBoards)
 

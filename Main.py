@@ -21,7 +21,7 @@ if (saveIt >= 0):
     positionEstimator.load_state_dict(torch.load(posEstSavePath + str(saveIt)))
     visionEdgeDecoderModel.load_state_dict(torch.load(edgeDecoderSavePath + str(saveIt)))
 
-nbIteration = 1000
+nbIteration = 10000
 batchSize = 50
 #lr = 1e-4
 t1 = 10000
