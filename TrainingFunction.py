@@ -13,6 +13,7 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
 
     mse = nn.MSELoss()
     crossEntropy = nn.CrossEntropyLoss()
+    bce = nn.BCEWithLogitsLoss()
 
     optimizer = None
     optimizer2 = None
@@ -113,16 +114,14 @@ def train(visionEncoderModel, visionDecoderModel, positionEstimator, visionEdgeD
 
         if (multitask['edgeDecoder']):
 
-
             edges = getEdge(boards)
             torchEdgeBoards = torch.FloatTensor(edges).cuda()
             torchEdgeBoards = torch.unsqueeze(torchEdgeBoards, 1)
-            torchEdgeBoards = torchEdgeBoards * 5
 
             features3 = visionEncoderModel(torchInputBoards)
 
             edgePred = visionEdgeDecoderModel(features3)
-            loss3 = mse(edgePred, torchEdgeBoards)
+            loss3 = bce(edgePred, torchEdgeBoards)
             optimizer3.zero_grad()
             loss3.backward()
             optimizer3.step()

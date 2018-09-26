@@ -33,8 +33,7 @@ def evaluateModel(visionEncoderModel, visionDecoderModel, visionEdgeDecoderModel
             originalBoard = np.squeeze(boards) * 255
 
             edges = getEdge(boards)
-            edge = edges[0] * 128
-            edge = edge + 127.5
+            edge = edges[0] * 255
 
             inputBoards = np.concatenate((boards, row, column), axis=3)
             torchInputBoards = torch.FloatTensor(inputBoards).cuda()
@@ -48,14 +47,15 @@ def evaluateModel(visionEncoderModel, visionDecoderModel, visionEdgeDecoderModel
             pred = pred.squeeze()
             predBoard = pred.data.cpu().numpy()
             predBoard = predBoard * 255
-            result = predBoard[:, :, 0:3]
+            decoderResult = predBoard[:, :, 0:3]
 
             edgePred = visionEdgeDecoderModel(features)
+            edgePred = F.sigmoid(edgePred)
             edgePred = edgePred.squeeze()
-            edgePred = edgePred + 5.0
-            edgePred = edgePred * (255 / 10)
+            edgePred = edgePred * 255
+            edgeResult = edgePred.data.cpu().numpy()
 
-            compareList = [originalBoard, result, edge, edgePred.data.cpu().numpy()]
+            compareList = [originalBoard, decoderResult, edge, edgeResult]
 
             showImgs(compareList, 2, 2)
 

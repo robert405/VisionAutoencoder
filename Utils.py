@@ -23,8 +23,7 @@ def getEdge(boards):
         boardEx = board.astype('uint8')
         edges[i] = cv2.Canny(boardEx, 127, 127)
 
-    edges = edges - 127.5
-    edges = edges / 128
+    edges[edges > 0] = 1
 
     return edges
 
